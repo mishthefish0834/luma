@@ -1,0 +1,55 @@
+<!-- //index.html -->
+<!DOCTYPE html>
+<html lang="en">
+ 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+ 
+<body>
+    <h1>home page</h1>
+    <p>focus session</p>
+    <p class="number-of-focus-sessions"> 2 </p>
+ 
+    <a href="focus.html">focus page</a>
+ 
+ 
+    <script>
+         let noOfFocusSession = JSON.parse(localStorage.getItem("focusNumber"))
+         document.querySelector(".number-of-focus-sessions").innerHTML = noOfFocusSession
+   
+    </script>
+</body>
+ 
+</html>
+
+<!-- //focus.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Focus</h1>
+    <a href="index.html">Go back to home page</a>
+    <br>
+    <p class="focus">2</p>
+    <button onclick="focusStarted()">Start the focus session</button>
+ 
+    <script>
+        // let noOfFocusSession = JSON.parse(localStorage.getItem("focusNumber"))
+         document.querySelector(".focus").innerHTML = noOfFocusSession
+         
+        function focusStarted(){
+            noOfFocusSession++
+            document.querySelector(".focus").innerHTML = noOfFocusSession
+            localStorage.setItem("focusNumber", JSON.stringify(noOfFocusSession))
+        }
+    </script>
+</body>
+</html>
+ 
