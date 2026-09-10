@@ -661,7 +661,7 @@
     }
     updateDisplay();
 </script> -->
-<script>
+<!-- <script>
     let timerDisplay = document.querySelector("#timer");
     let timerStatus = document.querySelector("#timer-status");
     let playBtn = document.querySelector(".play-btn");
@@ -761,5 +761,138 @@
 
     updateDisplay();
     loadFocusStats();
+</script> -->
+
+<script>
+    let timerDisplay = document.querySelector("#timer");
+    let timerStatus = document.querySelector("#timer-status");
+    let playBtn = document.querySelector(".play-btn");
+    let playIcon = document.querySelector(".play-btn i");
+    let resetBtn = document.querySelector(".reset-btn");
+    let modeButtons = document.querySelectorAll(".mode-btn");
+    let focusStatsText = document.querySelector(".focus-stats strong");
+
+    let timerInterval = null;
+    let timeLeft = 25 * 60; 
+    let currentModeTime = 25 * 60;
+
+    function loadFocusStats() {
+        let lumaData = JSON.parse(localStorage.getItem("luma_data")) || { focus: { sessions: 0, minutes: 0 } };
+        if (focusStatsText) {
+            focusStatsText.innerHTML = lumaData.focus.sessions;
+        }
+    }
+
+    function updateDisplay() {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        
+        if (minutes < 10) minutes = "0" + minutes;
+        if (seconds < 10) seconds = "0" + seconds;
+
+        timerDisplay.innerHTML = minutes + ":" + seconds;
+    }
+
+    function startTimer() {
+        if (timerInterval === null) {
+            playIcon.className = "fa-solid fa-pause";
+            
+            timerInterval = setInterval(function() {
+                timeLeft = timeLeft - 1;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    playIcon.className = "fa-solid fa-play";
+                    
+                    let lumaData = JSON.parse(localStorage.getItem("luma_data")) || { focus: { sessions: 0, minutes: 0 } };
+                    
+                    if (timerStatus.innerHTML === "FOCUS") {
+                        lumaData.focus.sessions += 1;
+                        lumaData.focus.minutes += 25; 
+                    }
+                    
+                    localStorage.setItem("luma_data", JSON.stringify(lumaData));
+                    
+                    loadFocusStats(); 
+                    window.alert("Session finished!");
+                }
+            }, 1000);
+        }
+    }
+
+    function stopTimer() {
+        if (timerInterval !== null) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            playIcon.className = "fa-solid fa-play";
+        }
+    }
+
+    playBtn.addEventListener("click", function() {
+        if (timerInterval !== null) {
+            stopTimer();
+        } else {
+            startTimer();
+        }
+    });
+
+    resetBtn.addEventListener("click", function() {
+        stopTimer();
+        timeLeft = currentModeTime;
+        updateDisplay();
+    });
+
+    for (let i = 0; i < modeButtons.length; i++) {
+        modeButtons[i].addEventListener("click", function(event) {
+            for (let j = 0; j < modeButtons.length; j++) {
+                modeButtons[j].classList.remove("active");
+            }
+            event.target.classList.add("active");
+
+            let mode = event.target.innerHTML.trim();
+            if (mode === "focus") {
+                currentModeTime = 25 * 60;
+                timerStatus.innerHTML = "FOCUS";
+            } else if (mode === "short break") {
+                currentModeTime = 5 * 60;
+                timerStatus.innerHTML = "SHORT BREAK";
+            } else if (mode === "long break") {
+                currentModeTime = 15 * 60;
+                timerStatus.innerHTML = "LONG BREAK";
+            }
+
+            stopTimer();
+            timeLeft = currentModeTime;
+            updateDisplay();
+        });
+    }
+
+    function checkAutoStart() {
+        let autoStart = localStorage.getItem("luma_auto_start_focus");
+        if (autoStart === "true") {
+            localStorage.removeItem("luma_auto_start_focus");
+            stopTimer();
+            currentModeTime = 25 * 60;
+            timeLeft = 25 * 60;
+            timerStatus.innerHTML = "FOCUS";
+            
+            for (let j = 0; j < modeButtons.length; j++) {
+                if (modeButtons[j].innerHTML.trim() === "focus") {
+                    modeButtons[j].classList.add("active");
+                } else {
+                    modeButtons[j].classList.remove("active");
+                }
+            }
+            
+            updateDisplay();
+            startTimer();
+        }
+    }
+
+    updateDisplay();
+    loadFocusStats();
+    checkAutoStart();
 </script>
 </html>
