@@ -396,13 +396,17 @@
         let editingIndex = -1;
 
         function getLumaData(){
-        let data = JSON.parse(localStorage.getItem("luma_data")) || [];
-        if (!data.tasks) data.tasks = [];
-        if (!data.stats) data.stats = {totalCompletedTasks: 0};
+            let data = JSON.parse(localStorage.getItem("luma_data")) || [];
+            if (!data.tasks) data.tasks = [];
+            if (!data.stats) data.stats = {totalCompletedTasks: 0};
+            return data;
         }
 
         openModalBtn.addEventListener("click", function () {
             editingIndex = -1;
+            document.querySelector(".modal-title").innerHTML = "add task.";
+            saveTaskBtn.innerHTML = "add task"
+            clearModalInputs();
             modalOverlay.style.display = "flex";
         });
 
@@ -419,7 +423,10 @@
         }
 
         function renderTasks() {
-            if (data === 0) {
+            let lumaData = getLumaData();
+            let tasks = lumaData.tasks;
+
+            if (tasks.length === 0) {
                 emptyStateCard.style.display = "flex";
                 taskListContainer.style.display = "none";
                 statsText.innerHTML = "0 open &bull; 0 in progress &bull; 0 done";
@@ -457,6 +464,10 @@
                                 <span class="tag">${currentTask.priority}</span>
                                 <span class="tag">${currentTask.category}</span>
                             </div>
+                        </div>
+                        <div style = "display: flex; gap: 7px; align-items: center;">
+                            <button onclick="openEditModal(${i})">
+                            <button onclick="deleteTask(${i})">
                         </div>
                     </div>
                 `;
@@ -500,7 +511,6 @@
                 lumaData.tasks.push(taskObject);
             }
 
-            data.push(newTaskObject);
             localStorage.setItem("luma_data", JSON.stringify(lumaData));
             renderTasks();
 
@@ -509,19 +519,6 @@
         });
         renderTasks();
 
-        window.triggerNewTaskModal = function () {
-            let modalOverlay = document.querySelector("#modal-overlay");
-            if (modalOverlay) {
-                modalOverlay.style.display = "flex";
-            }
-        };
-
-        if (window.location.search.includes("openModal=true")) {
-            let modalOverlay = document.querySelector("#modal-overlay");
-            if (modalOverlay) {
-                modalOverlay.style.display = "flex";
-            }
-        }
 
         window.openEditModal = function(index) {
             editingIndex = index;
@@ -538,8 +535,8 @@
             modalOverlay.style.display = "flex";
         }
 
-        window.deteTask = function(index) {
-            if(confrim("delete this task?")) {
+        window.deleteTask = function(index) {
+            if(confirm("delete this task?")) {
                 let lumaData = getLumaData();
                 lumaData.tasks.splice(index, 1);
                 localStorage.setItem("luma_data", JSON.stringify(lumaData));
@@ -547,9 +544,25 @@
             }
         }
 
+        window.triggerNewTaskModal = function () {
+            let modalOverlay = document.querySelector("#modal-overlay");
+            if (modalOverlay) {
+                modalOverlay.style.display = "flex";
+            }
+        };
+
+        if (window.location.search.includes("openModal=true")) {
+            if (modalOverlay) {
+                modalOverlay.style.display = "flex";
+            }
+        }
+
         if(window.location.search.includes("openModal=true")){
             modalOverlay.stle.display = "flex";
         }
+
+        renderTasks();
+
     </script>
 </body>
 
