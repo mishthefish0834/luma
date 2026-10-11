@@ -382,7 +382,6 @@
             </div>
         </div>
     </div>
-
     <script>
         let modalOverlay = document.querySelector("#modal-overlay");
         let openModalBtn = document.querySelector("#open-modal-btn");
@@ -393,19 +392,24 @@
         let emptyStateCard = document.querySelector("#empty-state");
         let statsText = document.querySelector("#stats-text");
 
+        // Filter dropdown elements
+        let statusFilter = document.querySelectorAll(".filter-select")[0];
+        let priorityFilter = document.querySelectorAll(".filter-select")[1];
+        let categoryFilter = document.querySelectorAll(".filter-select")[2];
+
         let editingIndex = -1;
 
         function getLumaData(){
-            let data = JSON.parse(localStorage.getItem("luma_data")) || [];
+            let data = JSON.parse(localStorage.getItem("luma_data")) || {};
             if (!data.tasks) data.tasks = [];
-            if (!data.stats) data.stats = {totalCompletedTasks: 0};
+            if (!data.stats) data.stats = { totalCompletedTasks: 0 };
             return data;
         }
 
         openModalBtn.addEventListener("click", function () {
             editingIndex = -1;
             document.querySelector(".modal-title").innerHTML = "add task.";
-            saveTaskBtn.innerHTML = "add task"
+            saveTaskBtn.innerHTML = "add task";
             clearModalInputs();
             modalOverlay.style.display = "flex";
         });
@@ -426,10 +430,35 @@
             let lumaData = getLumaData();
             let tasks = lumaData.tasks;
 
+            // Update top bar stats totals
+            let openCount = tasks.filter(t => t.status === "open").length;
+            let inProgressCount = tasks.filter(t => t.status === "in progress").length;
+            let doneCount = tasks.filter(t => t.status === "done").length;
+            statsText.innerHTML = `${openCount} open &bull; ${inProgressCount} in progress &bull; ${doneCount} done`;
+
             if (tasks.length === 0) {
                 emptyStateCard.style.display = "flex";
                 taskListContainer.style.display = "none";
-                statsText.innerHTML = "0 open &bull; 0 in progress &bull; 0 done";
+                return;
+            }
+
+            // Get current values from filter selects
+            let selectedStatus = statusFilter.value.toLowerCase();
+            let selectedPriority = priorityFilter.value.toLowerCase();
+            let selectedCategory = categoryFilter.value.toLowerCase();
+
+            // Filter tasks based on selections
+            let filteredTasks = tasks.filter(task => {
+                let matchesStatus = (selectedStatus === "all status" || task.status.toLowerCase() === selectedStatus);
+                let matchesPriority = (selectedPriority === "all priority" || task.priority.toLowerCase() === selectedPriority);
+                let matchesCategory = (selectedCategory === "all categories" || (task.category && task.category.toLowerCase() === selectedCategory));
+                return matchesStatus && matchesPriority && matchesCategory;
+            });
+
+            if (filteredTasks.length === 0) {
+                emptyStateCard.style.display = "flex";
+                emptyStateCard.querySelector(".empty-state-text").innerHTML = "no tasks match your filters";
+                taskListContainer.style.display = "none";
                 return;
             }
 
@@ -437,22 +466,23 @@
             taskListContainer.style.display = "flex";
             taskListContainer.innerHTML = "";
 
-            let openCount = 0;
-            let inProgressCount = 0;
-            let doneCount = 0;
+            for (let i = 0; i < tasks.length; i++) {
+                let currentTask = tasks[i];
 
-            for (let i = 0; i < data.length; i++) {
-                let currentTask = data[i];
+                // Check if this specific item passes the filter criteria
+                let matchesStatus = (selectedStatus === "all status" || currentTask.status.toLowerCase() === selectedStatus);
+                let matchesPriority = (selectedPriority === "all priority" || currentTask.priority.toLowerCase() === selectedPriority);
+                let matchesCategory = (selectedCategory === "all categories" || (currentTask.category && currentTask.category.toLowerCase() === selectedCategory));
+
+                if (!matchesStatus || !matchesPriority || !matchesCategory) {
+                    continue; // Skip rendering if it doesn't match filter
+                }
 
                 let statusClass = "tag-open";
                 if (currentTask.status === "in progress") {
                     statusClass = "tag-in-progress";
-                    inProgressCount = inProgressCount + 1;
                 } else if (currentTask.status === "done") {
                     statusClass = "tag-done";
-                    doneCount = doneCount + 1;
-                } else {
-                    openCount = openCount + 1;
                 }
 
                 let itemHTML = `
@@ -462,21 +492,28 @@
                             <div class="task-tags">
                                 <span class="tag ${statusClass}">${currentTask.status}</span>
                                 <span class="tag">${currentTask.priority}</span>
-                                <span class="tag">${currentTask.category}</span>
+                                <span class="tag">${currentTask.category || 'work'}</span>
                             </div>
                         </div>
-                        <div style = "display: flex; gap: 7px; align-items: center;">
-                            <button onclick="openEditModal(${i})">
-                            <button onclick="deleteTask(${i})">
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button onclick="openEditModal(${i})" style="background:none; border:none; color:#7e8a96; cursor:pointer; font-size:15px;">
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteTask(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:15px;">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
                         </div>
                     </div>
                 `;
 
-                taskListContainer.innerHTML = taskListContainer.innerHTML + itemHTML;
+                taskListContainer.innerHTML += itemHTML;
             }
-
-            statsText.innerHTML = openCount + " open &bull; " + inProgressCount + " in progress &bull; " + doneCount + " done";
         }
+
+        // Attach event listeners to filters to re-render instantly on change
+        statusFilter.addEventListener("change", renderTasks);
+        priorityFilter.addEventListener("change", renderTasks);
+        categoryFilter.addEventListener("change", renderTasks);
 
         saveTaskBtn.addEventListener("click", function () {
             let nameInput = document.querySelector("#input-task-name").value.trim();
@@ -492,7 +529,7 @@
             let lumaData = getLumaData();
 
             if (statusInput === "done"){
-                let isNewlyDone = (editingIndex === -1) || (lumaData.tasks[editingIndex] && lumaData.tasks[editingIndex].stats !== "done");
+                let isNewlyDone = (editingIndex === -1) || (lumaData.tasks[editingIndex] && lumaData.tasks[editingIndex].status !== "done");
                 if (isNewlyDone) {
                     lumaData.stats.totalCompletedTasks = (lumaData.stats.totalCompletedTasks || 0) + 1;
                 }
@@ -506,9 +543,9 @@
             };
 
             if (editingIndex >= 0) {
-                lumaData.tasks[editingIndex] = taskObject;
+                lumaData.tasks[editingIndex] = newTaskObject;
             } else {
-                lumaData.tasks.push(taskObject);
+                lumaData.tasks.push(newTaskObject);
             }
 
             localStorage.setItem("luma_data", JSON.stringify(lumaData));
@@ -517,8 +554,6 @@
             modalOverlay.style.display = "none";
             clearModalInputs();
         });
-        renderTasks();
-
 
         window.openEditModal = function(index) {
             editingIndex = index;
@@ -533,7 +568,7 @@
             document.querySelector(".modal-title").innerHTML = "edit task.";
             saveTaskBtn.innerHTML = "save changes";
             modalOverlay.style.display = "flex";
-        }
+        };
 
         window.deleteTask = function(index) {
             if(confirm("delete this task?")) {
@@ -542,10 +577,9 @@
                 localStorage.setItem("luma_data", JSON.stringify(lumaData));
                 renderTasks();
             }
-        }
+        };
 
         window.triggerNewTaskModal = function () {
-            let modalOverlay = document.querySelector("#modal-overlay");
             if (modalOverlay) {
                 modalOverlay.style.display = "flex";
             }
@@ -557,12 +591,7 @@
             }
         }
 
-        if(window.location.search.includes("openModal=true")){
-            modalOverlay.stle.display = "flex";
-        }
-
         renderTasks();
-
     </script>
 </body>
 
